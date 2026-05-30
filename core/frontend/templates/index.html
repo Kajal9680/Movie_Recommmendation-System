@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MOVIXPedia</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="page-shell">
+        <header class="topbar">
+            <div class="brand">
+                <a href="/" style="text-decoration:none"><span class="logo">MOVIX<span>Pedia</span></span></a>
+            </div>
+            <nav class="nav-links">
+                <a href="{{ url_for('main.recommend', movie='Movies') }}">Movies</a>
+                <a href="{{ url_for('main.recommend', movie='Series') }}">Series</a>
+                <a href="{{ url_for('main.recommend', movie='Animation') }}">Animation</a>
+                <a href="{{ url_for('main.recommend', movie='Action') }}">Genres</a>
+            </nav>
+            <div class="actions">
+                {% if session.get('user_name') %}
+                <span class="user-greeting">Hi, {{ session['user_name'] }}</span>
+                <a href="{{ url_for('auth.logout') }}" class="logout-btn">Logout</a>
+                {% else %}
+                <a href="{{ url_for('auth.login') }}" class="login-link">Log In</a>
+                <a href="{{ url_for('auth.signup') }}" class="signup-link-btn">Sign Up</a>
+                {% endif %}
+            </div>
+        </header>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div class="flash-container">
+            {% for category, message in messages %}
+            <div class="flash-message flash-{{ category }}">{{ message }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% endwith %}
+
+        <main class="hero">
+            <div class="hero-overlay"></div>
+            <div class="hero-content">
+                <div class="hero-copy">
+                    <h1>Find your next watch on the big screen</h1>
+                    <p>Search any movie and get recommendations for similar titles instantly.</p>
+                </div>
+                <form action="{{ url_for('main.recommend') }}" method="post" class="hero-search">
+                    <div class="search-container">
+                        <input type="text" id="movie-input" name="movie" placeholder="Search your movie..." required autocomplete="off">
+                        <div id="suggestions" class="suggestions"></div>
+                    </div>
+                    <button type="submit" class="recommend-btn">Recommend</button>
+                </form>
+            </div>
+        </main>
+
+        <footer class="footer-bar">
+            <a href="#"><img src="https://img.icons8.com/ios-filled/24/ffffff/facebook-new.png" alt="Facebook"></a>
+            <a href="#"><img src="https://img.icons8.com/ios-filled/24/ffffff/x.png" alt="X"></a>
+            <a href="#"><img src="https://img.icons8.com/ios-filled/24/ffffff/whatsapp.png" alt="WhatsApp"></a>
+            <a href="#"><img src="https://img.icons8.com/ios-filled/24/ffffff/google-logo.png" alt="Google"></a>
+            <a href="#"><img src="https://img.icons8.com/ios-filled/24/ffffff/instagram-new.png" alt="Instagram"></a>
+        </footer>
+    </div>
+
+    <!-- Pass data safely using application/json -->
+    <script id="movie-data" type="application/json">
+        {{ movie_titles|tojson|safe }}
+    </script>
+
+    <script>
+        // Load movie titles safely from the JSON script tag
+        const movieTitles = JSON.parse(document.getElementById('movie-data').textContent);
+        const input = document.getElementById('movie-input');
+        const suggestions = document.getElementById('suggestions');
+
+        input.addEventListener('input', function() {
+            const query = this.value.toLowerCase().trim();
+            suggestions.innerHTML = '';
+            
+            if (query.length > 0) {
+                // 1. Prioritize movies that START with the query
+                const startsWith = movieTitles.filter(title => 
+                    title.toLowerCase().startsWith(query)
+                );
+                
+                // 2. Then movies that CONTAIN the query (but don't start with it)
+                const contains = movieTitles.filter(title => 
+                    title.toLowerCase().includes(query) && !title.toLowerCase().startsWith(query)
+                );
+                
+                // Combine and limit to 10 results
+                const matches = [...startsWith, ...contains].slice(0, 10);
+
+                if (matches.length > 0) {
+                    matches.forEach(title => {
+                        const div = document.createElement('div');
+                        
+                        // Highlight the matching part of the text
+                        const lowerTitle = title.toLowerCase();
+                        const index = lowerTitle.indexOf(query);
+                        
+                        if (index !== -1) {
+                            const before = title.substring(0, index);
+                            const match = title.substring(index, index + query.length);
+                            const after = title.substring(index + query.length);
+                            div.innerHTML = `${before}<strong>${match}</strong>${after}`;
+                        } else {
+                            div.textContent = title;
+                        }
+
+                        div.addEventListener('click', function() {
+                            input.value = title;
+                            suggestions.innerHTML = '';
+                            suggestions.style.display = 'none';
+                            // Submit form on selection
+                            input.closest('form').submit();
+                        });
+                        suggestions.appendChild(div);
+                    });
+                    suggestions.style.display = 'block';
+                } else {
+                    suggestions.style.display = 'none';
+                }
+            } else {
+                suggestions.style.display = 'none';
+            }
+        });
+
+        // Hide suggestions when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!input.contains(e.target) && !suggestions.contains(e.target)) {
+                suggestions.style.display = 'none';
+            }
+        });
+
+        // Keyboard navigation for suggestions (optional but nice)
+        input.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                suggestions.style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>

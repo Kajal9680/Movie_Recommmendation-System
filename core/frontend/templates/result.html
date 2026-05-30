@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recommended Movies</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+    <div class="page-shell">
+        <header class="topbar">
+            <div class="brand">
+                <a href="/" style="text-decoration:none"><span class="logo">MOVIX<span>Pedia</span></span></a>
+            </div>
+            <nav class="nav-links">
+                <a href="{{ url_for('main.home') }}">Home</a>
+                <a href="{{ url_for('main.recommend', movie='Movies') }}">Movies</a>
+                <a href="{{ url_for('main.recommend', movie='Animation') }}">Animation</a>
+            </nav>
+            <div class="actions">
+                {% if session.get('user_name') %}
+                <span class="user-greeting">Hi, {{ session['user_name'] }}</span>
+                <a href="{{ url_for('auth.logout') }}" class="logout-btn">Logout</a>
+                {% else %}
+                <a href="{{ url_for('auth.login') }}" class="login-link">Log In</a>
+                <a href="{{ url_for('auth.signup') }}" class="signup-link-btn">Sign Up</a>
+                {% endif %}
+            </div>
+        </header>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div class="flash-container">
+            {% for category, message in messages %}
+            <div class="flash-message flash-{{ category }}">{{ message }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% endwith %}
+
+        <main class="result-page">
+            {% if error_message %}
+            <div class="no-results">
+                <div class="no-results-icon">🎬</div>
+                <h2>Movie Not Found</h2>
+                <p>{{ error_message }}</p>
+                <a href="{{ url_for('main.home') }}" class="back-home-btn">← Back to Search</a>
+            </div>
+
+            {% if results %}
+            <h2 class="section-title">You might also like</h2>
+            <div class="movies">
+                {% for movie in results %}
+                <a href="{{ url_for('main.recommend') }}?movie={{ movie.title | urlencode }}" class="card">
+                    <img src="{{ movie.poster }}" alt="{{ movie.title }} poster">
+                    <div class="card-overlay">
+                        <div class="card-overlay-body">
+                            <h3>{{ movie.title }}</h3>
+                            <p class="rating">⭐ {{ movie.rating }}/10</p>
+                            <p class="genres">{{ movie.genres }}</p>
+                        </div>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            {% else %}
+            <div class="movies">
+                {% for movie in results %}
+                <a href="{{ url_for('main.recommend') }}?movie={{ movie.title | urlencode }}" class="card">
+                    <img src="{{ movie.poster }}" alt="{{ movie.title }} poster">
+                    <div class="card-overlay">
+                        <div class="card-overlay-top">
+                            <span class="match">{{ movie.match_percent }}% Match</span>
+                        </div>
+                        <div class="card-overlay-body">
+                            <h3>{{ movie.title }}</h3>
+                            <p class="rating">⭐ {{ movie.rating }}/10</p>
+                            <p class="genres">{{ movie.genres }}</p>
+                        </div>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </main>
+    </div>
+</body>
+
+</html>
